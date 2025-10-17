@@ -11,4 +11,6 @@ urlpatterns = [
     
     path('historial/', views.historial_busquedas, name='historial_busquedas'),
     path('historial/<int:busqueda_id>/', views.detalle_busqueda, name='detalle_busqueda'),
+
+    path('historial/<int:busqueda_id>/pdf/', views.generar_pdf_busqueda, name='generar_pdf_busqueda'),
 ]

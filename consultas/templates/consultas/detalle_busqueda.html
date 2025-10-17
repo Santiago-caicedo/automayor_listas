@@ -5,9 +5,14 @@
 {% block content %}
     <header class="page-header">
         <h1 class="display-6">Detalle de Búsqueda (Expediente)</h1>
-        <p class="text-muted">Resultados completos para la consulta de <strong>"{{ busqueda.termino_buscado }}"</strong> realizada el {{ busqueda.fecha_busqueda|date:"d/m/Y \a \l\a\s P" }}.</p>
+        <p class="text-muted">Resultados completos para la consulta de <strong>"{{ busqueda.termino_buscado }}"</strong>...</p>
+        
         <a href="{% url 'historial_busquedas' %}" class="btn btn-outline-secondary btn-sm mt-2">
             <i class="bi bi-arrow-left"></i> Volver al Historial
+        </a>
+        
+        <a href="{% url 'generar_pdf_busqueda' busqueda_id=busqueda.id %}" class="btn btn-primary btn-sm mt-2" target="_blank">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Descargar Expediente en PDF
         </a>
     </header>
 

@@ -1,11 +1,14 @@
 # archivo: consultas/views.py
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from .forms import BusquedaForm
 from .services import consultar_api_por_id, consultar_api_por_id_y_nombre, consultar_api_por_nombre
 from .models import Busqueda, Resultado # <-- IMPORTAMOS LOS MODELOS
 from django.utils import timezone
+from weasyprint import HTML
+from django.template.loader import render_to_string
 from datetime import timedelta
 from django.db.models import Count
 from django.db.models.functions import TruncDay
@@ -205,3 +208,29 @@ def dashboard(request):
         'data_fuentes': data_fuentes,
     }
     return render(request, 'consultas/dashboard.html', context)
+
+
+@login_required
+def generar_pdf_busqueda(request, busqueda_id):
+    """
+    Genera un reporte en PDF para una búsqueda específica.
+    """
+    # 1. Obtenemos la búsqueda de forma segura
+    busqueda = get_object_or_404(Busqueda, pk=busqueda_id, usuario=request.user)
+
+    # 2. Renderizamos la plantilla HTML a una cadena de texto
+    #    Pasamos el objeto 'busqueda' al contexto de la plantilla.
+    html_string = render_to_string('consultas/reporte_pdf.html', {'busqueda': busqueda})
+
+    # 3. Usamos WeasyPrint para convertir el HTML en un PDF en memoria
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+
+    # 4. Creamos una respuesta HTTP con el contenido del PDF
+    response = HttpResponse(pdf, content_type='application/pdf')
+
+    # 5. Añadimos una cabecera para que el navegador lo trate como una descarga
+    #    con un nombre de archivo dinámico.
+    response['Content-Disposition'] = f'attachment; filename="Reporte-LAFT-{busqueda.termino_buscado}.pdf"'
+    
+    return response

@@ -169,3 +169,11 @@ LOGOUT_REDIRECT_URL = '/cuentas/login/' # Lo enviamos de vuelta a la página de 
 # --- CREDENCIALES DEL API ---
 API_TOKEN = config('API_TOKEN')
 API_BASE_URL = config('API_BASE_URL')
+
+
+AUTHENTICATION_BACKENDS = [
+    # Tries our custom tenant check first
+    'usuarios.backends.TenantAuthenticationBackend', 
+    # Falls back to the default check (needed for admin login, superusers)
+    'django.contrib.auth.backends.ModelBackend', 
+]

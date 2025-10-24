@@ -13,29 +13,53 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db.models.functions import TruncDay
 
+
+# --- FUNCIÓN AUXILIAR PARA CLASIFICAR ---
+def get_classification(tipo_lista):
+    if not tipo_lista:
+        return 'No Clasificado'
+
+    tipo_lista_upper = tipo_lista.upper()
+
+    # 1. Listas Amarillas (Filtraciones específicas)
+    yellow_lists = [
+        "PARADISE PAPERS", "PANAMA PAPERS", "BAHAMAS LEAKS",
+        "BOLETIN PANAMA PAPERS", "OFFSHORE LEAKS"
+    ]
+    if tipo_lista_upper in yellow_lists:
+        return "Amarillo"
+
+    # 2. Listas PEP's (Palabras clave)
+    pep_keywords = [
+        'PEP', 'GOBIERNO', 'CONSEJO', 'CORTE', 'EMBAJADAS', 'MINISTERIO',
+        'PRESIDENCIA', 'SENADO', 'CAMARA', 'ASAMBLEA', 'ALCALDIAS',
+        'CONCEJOS', 'NOTARIAS', 'SIGEP', 'ELECTORAL', 'JUDICATURA',
+        'CANDIDATOS', 'PARTIDOS'
+    ]
+    # Check if *any* keyword is *part* of the tipo_lista string
+    if any(keyword in tipo_lista_upper for keyword in pep_keywords):
+        return "PEP's"
+
+    # 3. Todo lo demás es Rojo
+    return "Rojo"
+# --- FIN FUNCIÓN AUXILIAR ---
+
 @login_required
 def pagina_busqueda(request):
-    """
-    Gestiona la página principal de consultas. Muestra el formulario,
-    procesa la búsqueda, llama al API correspondiente, guarda los
-    resultados y los muestra en la plantilla.
-    """
     form = BusquedaForm()
     resultados_api = None
     alerta_generada = False
-    busqueda_obj = None
-    
+    busqueda_obj = None # Initialize outside the POST block
+
     if request.method == 'POST':
         form = BusquedaForm(request.POST)
 
-        # Verificamos si el formulario es válido
         if form.is_valid():
-            # Si es válido, se ejecuta toda la lógica de búsqueda y guardado
             identificacion = form.cleaned_data.get("identificacion")
             nombres = form.cleaned_data.get("nombres")
             termino_buscado = ""
 
-            # --- Lógica para decidir qué método del API usar ---
+            # --- Decide API method ---
             if identificacion and nombres:
                 termino_buscado = f"ID: {identificacion} y Nombre: {nombres}"
                 resultados_api = consultar_api_por_id_y_nombre(identificacion, nombres)
@@ -45,10 +69,10 @@ def pagina_busqueda(request):
             elif nombres:
                 termino_buscado = f"Nombre: {nombres}"
                 resultados_api = consultar_api_por_nombre(nombres)
-            
-            # --- Lógica para guardar en la Base de Datos ---
+
+            # --- Save to Database ---
             if termino_buscado:
-                busqueda_obj = Busqueda.objects.create(
+                busqueda_obj = Busqueda.objects.create( # Assign to the outer scope variable
                     usuario=request.user,
                     termino_buscado=termino_buscado
                 )
@@ -58,50 +82,55 @@ def pagina_busqueda(request):
                         es_restrictiva = item.get('Restrictiva', False)
                         if es_restrictiva:
                             alerta_generada = True
-                        
-                        # Pequeña mejora para hacer el código más robusto y automático
-                        # Mapea las llaves del API a los campos del modelo que coincidan
-                        campos_modelo = [f.name for f in Resultado._meta.get_fields()]
-                        datos_para_crear = {k.lower(): v for k, v in item.items() if k.lower() in campos_modelo}
-                        
+
+                        # --- Calculate and Save Classification ---
+                        tipo_lista_api = item.get('Tipo_Lista', '')
+                        clasificacion_calculada = get_classification(tipo_lista_api)
+                        # --- End Calculate ---
+
                         Resultado.objects.create(
                             busqueda=busqueda_obj,
+
+                            # Original fields
                             nombre_completo=item.get('NombreCompleto'),
-                            identificacion=item.get('Id'), # El ID del API va en nuestro campo 'identificacion'
-                            tipo_lista=item.get('Tipo_Lista'),
+                            identificacion=item.get('Id'),
+                            tipo_lista=tipo_lista_api, # Use variable already retrieved
                             origen_lista=item.get('Origen_Lista'),
                             relacionado_con=item.get('Relacionado_Con'),
                             fuente=item.get('Fuente'),
-                            es_restrictiva=es_restrictiva
+                            es_restrictiva=es_restrictiva,
+
+                            # New fields from Vadom PDF / SIDIF Guide
+                            es_boletin=item.get('Boletin', False),
+                            alias=item.get('Aka'),
+                            coincidencia_nombre=item.get('CoincidenciaNombre', 0),
+                            coincidencia_id=item.get('CoincidenciaID', 0),
+                            tipo_persona=item.get('Tipo_Persona'),
+                            fecha_update=item.get('Fecha_Update'), # Added from model
+                            estado=item.get('Estado'),             # Added from model
+                            llaveimagen=item.get('LlaveImagen'),   # Added from model
+
+                            # Our internal classification
+                            clasificacion=clasificacion_calculada
                         )
-                    
+
                     if alerta_generada:
                         busqueda_obj.genero_alerta = True
-                    
                     busqueda_obj.save()
         else:
-            # Si el formulario NO es válido, imprimimos los errores en la terminal
+            # If form is invalid, print errors
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             print("!!!      FORMULARIO INVÁLIDO       !!!")
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             print("Errores encontrados:", form.errors)
 
-    # Preparamos el contexto para la plantilla
+    # Prepare context for the template
     context = {
         'form': form,
-        'resultados': resultados_api,
-        'alerta_generada': alerta_generada,
-        'busqueda_obj': busqueda_obj,
+        # 'resultados': resultados_api, # We don't show results directly anymore
+        'alerta_generada': alerta_generada, # Keep for potential general alert messages
+        'busqueda_obj': busqueda_obj, # Pass the created search object for the banner link
     }
-
-    # --- PRUEBA FINAL Y DEFINITIVA ---
-    # Justo antes de renderizar, imprimimos el contenido de 'resultados' en el contexto
-    print("================ ÚLTIMA VERIFICACIÓN ================")
-    if context['resultados']:
-        print(f"Contexto CONTIENE {len(context['resultados'])} resultados.")
-    else:
-        print("Contexto NO CONTIENE resultados (es None o está vacío).")
-    print("=====================================================")
 
     return render(request, 'consultas/pagina_busqueda.html', context)
 
@@ -138,40 +167,48 @@ def detalle_busqueda(request, busqueda_id):
     return render(request, 'consultas/detalle_busqueda.html', context)
 
 
-
 @login_required
 def dashboard(request):
     # --- RANGO DE TIEMPO ---
-    # Analizaremos los datos de los últimos 30 días
     hoy = timezone.now()
     hace_30_dias = hoy - timedelta(days=30)
 
-    # --- FILTRO BASE ---
-    # Obtenemos todas las búsquedas de la EMPRESA del usuario actual en el rango de tiempo
-    busquedas = Busqueda.objects.filter(
-        usuario__empresa=request.user.empresa, 
+    # --- FILTRO BASE (Búsquedas de la empresa en el rango) ---
+    busquedas_periodo = Busqueda.objects.filter(
+        usuario__empresa=request.user.empresa,
         fecha_busqueda__gte=hace_30_dias
     )
 
-    # --- MÉTRICAS PRINCIPALES (KPIs) ---
-    total_consultas_mes = busquedas.count()
-    total_alertas_mes = busquedas.filter(genero_alerta=True).count()
-    
-    consultas_hoy = busquedas.filter(fecha_busqueda__date=hoy.date()).count()
-    alertas_hoy = busquedas.filter(fecha_busqueda__date=hoy.date(), genero_alerta=True).count()
-    
-    tasa_alerta = (total_alertas_mes / total_consultas_mes * 100) if total_consultas_mes > 0 else 0
+    # --- OBTENER TODOS LOS RESULTADOS CLASIFICADOS DEL PERIODO ---
+    resultados_periodo = Resultado.objects.filter(busqueda__in=busquedas_periodo)
+
+    # --- MÉTRICAS PRINCIPALES POR CLASIFICACIÓN (KPIs) ---
+    total_consultas_mes = busquedas_periodo.count()
+
+    # Contamos resultados por clasificación en los últimos 30 días
+    rojo_mes = resultados_periodo.filter(clasificacion='Rojo').count()
+    amarillo_mes = resultados_periodo.filter(clasificacion='Amarillo').count()
+    peps_mes = resultados_periodo.filter(clasificacion="PEP's").count()
+
+    # Contamos resultados por clasificación para HOY
+    busquedas_hoy_ids = busquedas_periodo.filter(fecha_busqueda__date=hoy.date()).values_list('id', flat=True)
+    resultados_hoy = Resultado.objects.filter(busqueda_id__in=busquedas_hoy_ids)
+    rojo_hoy = resultados_hoy.filter(clasificacion='Rojo').count()
+    amarillo_hoy = resultados_hoy.filter(clasificacion='Amarillo').count()
+    peps_hoy = resultados_hoy.filter(clasificacion="PEP's").count()
+    consultas_hoy_count = len(busquedas_hoy_ids) # Contamos las búsquedas únicas de hoy
 
     # --- DATOS PARA GRÁFICO DE TENDENCIAS ---
-    # Contamos las consultas por día para los últimos 30 días
-    tendencia_consultas = (busquedas
+    # Tendencia general de consultas
+    tendencia_consultas = (busquedas_periodo
                            .annotate(dia=TruncDay('fecha_busqueda'))
                            .values('dia')
                            .annotate(conteo=Count('id'))
                            .order_by('dia'))
-    
-    tendencia_alertas = (busquedas.filter(genero_alerta=True)
-                         .annotate(dia=TruncDay('fecha_busqueda'))
+
+    # Tendencia de hallazgos ROJOS
+    tendencia_rojos = (resultados_periodo.filter(clasificacion='Rojo')
+                         .annotate(dia=TruncDay('busqueda__fecha_busqueda'))
                          .values('dia')
                          .annotate(conteo=Count('id'))
                          .order_by('dia'))
@@ -179,31 +216,39 @@ def dashboard(request):
     # Preparamos los datos para Chart.js
     labels_tendencia = [item['dia'].strftime('%d/%m') for item in tendencia_consultas]
     data_consultas = [item['conteo'] for item in tendencia_consultas]
-    data_alertas = [item['conteo'] for item in tendencia_alertas]
+    # Aseguramos que los datos rojos coincidan con las etiquetas, rellenando días faltantes con 0
+    rojos_dict = {item['dia']: item['conteo'] for item in tendencia_rojos}
+    data_rojos = [rojos_dict.get(item['dia'], 0) for item in tendencia_consultas]
 
-    # --- DATOS PARA GRÁFICO DE FUENTES DE ALERTA (La parte "Revolucionaria") ---
-    # Analizamos de qué tipo de listas vienen las alertas más comunes
-    fuentes_alertas = (Resultado.objects.filter(busqueda__in=busquedas, es_restrictiva=True)
+
+    # --- DATOS PARA GRÁFICO DE FUENTES ROJAS ---
+    # Mantenemos este gráfico enfocado en las fuentes de riesgo ROJO (más críticas)
+    fuentes_rojas = (resultados_periodo.filter(clasificacion='Rojo')
                        .values('tipo_lista')
                        .annotate(conteo=Count('tipo_lista'))
-                       .order_by('-conteo'))
+                       .order_by('-conteo')[:5]) # Top 5 fuentes rojas
 
-    labels_fuentes = [item['tipo_lista'] for item in fuentes_alertas]
-    data_fuentes = [item['conteo'] for item in fuentes_alertas]
+    labels_fuentes = [item['tipo_lista'] if item['tipo_lista'] else 'N/A' for item in fuentes_rojas]
+    data_fuentes = [item['conteo'] for item in fuentes_rojas]
 
     # --- BÚSQUEDAS RECIENTES ---
-    ultimas_busquedas = busquedas.order_by('-fecha_busqueda')[:5]
+    ultimas_busquedas = busquedas_periodo.order_by('-fecha_busqueda')[:5]
 
     context = {
         'total_consultas_mes': total_consultas_mes,
-        'total_alertas_mes': total_alertas_mes,
-        'consultas_hoy': consultas_hoy,
-        'alertas_hoy': alertas_hoy,
-        'tasa_alerta': round(tasa_alerta, 2),
+        'consultas_hoy_count': consultas_hoy_count, # Nuevo nombre para claridad
+        # Nuevas métricas por clasificación
+        'rojo_mes': rojo_mes,
+        'amarillo_mes': amarillo_mes,
+        'peps_mes': peps_mes,
+        'rojo_hoy': rojo_hoy,
+        'amarillo_hoy': amarillo_hoy,
+        'peps_hoy': peps_hoy,
+        # Datos para gráficos y tabla
         'ultimas_busquedas': ultimas_busquedas,
         'labels_tendencia': labels_tendencia,
         'data_consultas': data_consultas,
-        'data_alertas': data_alertas,
+        'data_rojos': data_rojos, # Cambiado de data_alertas
         'labels_fuentes': labels_fuentes,
         'data_fuentes': data_fuentes,
     }
@@ -223,7 +268,7 @@ def generar_pdf_busqueda(request, busqueda_id):
     html_string = render_to_string('consultas/reporte_pdf.html', {'busqueda': busqueda})
 
     # 3. Usamos WeasyPrint para convertir el HTML en un PDF en memoria
-    html = HTML(string=html_string)
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     pdf = html.write_pdf()
 
     # 4. Creamos una respuesta HTTP con el contenido del PDF

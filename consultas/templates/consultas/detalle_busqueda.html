@@ -17,12 +17,28 @@
     </header>
 
     {% for resultado in busqueda.resultados.all %}
-        <div class="card mb-3 {% if resultado.es_restrictiva %}border-danger border-3{% endif %}">
-            <div class="card-header {% if resultado.es_restrictiva %}bg-danger text-white{% else %}bg-light{% endif %}">
-                <h5 class="mb-0">
-                    <i class="bi bi-person-vcard"></i> 
-                    {{ resultado.nombre_completo }} 
-                    <small class="text-muted">(ID: {{ resultado.identificacion }})</small>
+        <div class="card mb-3 
+            {% if resultado.clasificacion == 'Rojo' %}border-danger border-3{% endif %}
+            {% if resultado.clasificacion == 'Amarillo' %}border-warning border-3{% endif %}
+            ">
+            <div class="card-header 
+                {% if resultado.clasificacion == 'Rojo' %}bg-danger text-white{% endif %}
+                {% if resultado.clasificacion == 'Amarillo' %}bg-warning text-dark{% endif %}
+                {% if resultado.clasificacion == 'PEP\'s' %}bg-info text-dark{% endif %}
+                {% if resultado.clasificacion == 'No Clasificado' %}bg-light{% endif %}
+                ">
+                <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-person-vcard"></i> 
+                        {{ resultado.nombre_completo }} 
+                        <small class="{% if resultado.clasificacion != 'Rojo' %}text-muted{% endif %}">(ID: {{ resultado.identificacion }})</small>
+                    </span>
+                    <span class="badge 
+                        {% if resultado.clasificacion == 'Rojo' %}bg-danger-subtle border border-danger-subtle text-danger-emphasis{% endif %}
+                        {% if resultado.clasificacion == 'Amarillo' %}bg-warning-subtle border border-warning-subtle text-warning-emphasis{% endif %}
+                        {% if resultado.clasificacion == 'PEP\'s' %}bg-info-subtle border border-info-subtle text-info-emphasis{% endif %}
+                        fs-6"> {{ resultado.clasificacion }}
+                    </span>
                 </h5>
             </div>
             <div class="card-body">
@@ -31,11 +47,7 @@
                         <p class="mb-2"><strong>Tipo de Lista:</strong> {{ resultado.tipo_lista }}</p>
                         <p class="mb-2"><strong>Fuente:</strong> {{ resultado.fuente }}</p>
                         <p class="mb-0"><strong>¿Lista Restrictiva?:</strong> 
-                            {% if resultado.es_restrictiva %}
-                                <span class="badge bg-danger">Sí</span>
-                            {% else %}
-                                <span class="badge bg-secondary">No</span>
-                            {% endif %}
+                            {% if resultado.es_restrictiva %}<span class="badge bg-danger">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
                         </p>
                     </div>
                     <div class="col-md-6">
@@ -46,8 +58,6 @@
             </div>
         </div>
     {% empty %}
-         <div class="alert alert-warning" role="alert">
-            Esta búsqueda no tuvo resultados asociados.
-        </div>
+        <div class="alert alert-warning" role="alert">Esta búsqueda no tuvo resultados asociados.</div>
     {% endfor %}
 {% endblock %}

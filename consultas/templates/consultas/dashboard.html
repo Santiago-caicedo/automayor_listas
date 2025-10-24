@@ -1,64 +1,134 @@
 {% extends 'consultas/base.html' %}
-{% load static %}
+{% load static %} {# Carga static por si planeas usar archivos estáticos locales después #}
 
 {% block title %}Dashboard | Plataforma LAFT{% endblock %}
 
 {% block content %}
 <header class="page-header">
     <h1 class="display-6">Dashboard de Inteligencia de Riesgo</h1>
-    <p class="text-muted">Análisis de las consultas realizadas por {{ user.empresa.nombre }} en los últimos 30 días.</p>
+    <p class="text-muted">Análisis de las consultas y hallazgos de {{ user.empresa.nombre }} en los últimos 30 días.</p>
 </header>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
+    <div class="col-xl-3 col-md-6"> {# Columnas ajustadas para mejor responsividad #}
         <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Consultas (Últimos 30 días)</h6>
-                <p class="card-text display-4 fw-bold">{{ total_consultas_mes }}</p>
+            <div class="card-body d-flex flex-column justify-content-center"> {# Contenido centrado #}
+                <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-search"></i> Consultas (30 días)</h6>
+                <p class="card-text display-4 fw-bold mb-0">{{ total_consultas_mes }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Alertas Generadas (30 días)</h6>
-                <p class="card-text display-4 fw-bold text-danger">{{ total_alertas_mes }}</p>
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-start border-danger border-4">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-shield-fill-exclamation text-danger"></i> Hallazgos Rojos (30 días)</h6>
+                <p class="card-text display-4 fw-bold text-danger mb-0">{{ rojo_mes }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Tasa de Alerta (30 días)</h6>
-                <p class="card-text display-4 fw-bold text-warning">{{ tasa_alerta }}%</p>
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-start border-warning border-4">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Hallazgos Amarillos (30 días)</h6>
+                <p class="card-text display-4 fw-bold text-warning mb-0">{{ amarillo_mes }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card h-100 shadow-sm">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-start border-info border-4">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-person-badge text-info"></i> Hallazgos PEP's (30 días)</h6>
+                <p class="card-text display-4 fw-bold text-info mb-0">{{ peps_mes }}</p>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8"> {# Cambiado a lg para mejor diseño en pantallas grandes #}
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-bold"><i class="bi bi-graph-up"></i> Tendencia de Actividad (Últimos 30 días)</div>
             <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Consultas (Hoy)</h6>
-                <p class="card-text display-4 fw-bold">{{ consultas_hoy }}</p>
+                 {# Aseguramos altura mínima para el gráfico #}
+                <div style="position: relative; height: 350px;"> 
+                    <canvas id="tendenciaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-bold"><i class="bi bi-pie-chart-fill"></i> Principales Fuentes Rojas (Top 5)</div>
+            <div class="card-body d-flex align-items-center justify-content-center"> {# Centrar gráfico de dona #}
+                 {# Restringimos tamaño #}
+                 <div style="position: relative; height:300px; width:300px"> 
+                    <canvas id="fuentesChart"></canvas>
+                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-8">
-        <div class="card shadow-sm h-100">
-            <div class="card-header">Tendencia de Actividad (Últimos 30 días)</div>
-            <div class="card-body">
-                <canvas id="tendenciaChart"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header">Principales Fuentes de Alerta</div>
-            <div class="card-body">
-                <canvas id="fuentesChart"></canvas>
-            </div>
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+             <div class="card-header fw-bold"><i class="bi bi-clock-history"></i> Últimas Búsquedas Realizadas</div>
+             <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0"> {# align-middle para centrar verticalmente #}
+                        <thead>
+                            <tr>
+                                <th>Término Buscado</th>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th class="text-center">Clasif. Hallazgos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in ultimas_busquedas %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'detalle_busqueda' busqueda_id=b.id %}" class="fw-bold text-decoration-none">
+                                        {{ b.termino_buscado }}
+                                    </a>
+                                </td>
+                                <td>{{ b.fecha_busqueda|date:"d/m/y H:i" }}</td>
+                                <td>{{ b.usuario.username }}</td>
+                                <td class="text-center">
+                                    {# --- LÓGICA CORREGIDA PARA CONTAR CLASIFICACIONES --- #}
+                                    {% with resultados=b.resultados.all %}
+                                        {% if not resultados %}
+                                            <span class="badge bg-light text-dark">Sin hallazgos</span>
+                                        {% else %}
+                                            {# Agrupamos por clasificación #}
+                                            {% regroup resultados by clasificacion as resultados_agrupados %}
+                                            {# Mostramos un badge por cada grupo encontrado #}
+                                            {% for grupo in resultados_agrupados %}
+                                                {% if grupo.grouper == 'Rojo' %}
+                                                    <span class="badge bg-danger me-1">R: {{ grupo.list|length }}</span>
+                                                {% elif grupo.grouper == 'Amarillo' %}
+                                                    <span class="badge bg-warning text-dark me-1">A: {{ grupo.list|length }}</span>
+                                                {% elif grupo.grouper == "PEP's" %}
+                                                    <span class="badge bg-info text-dark me-1">P: {{ grupo.list|length }}</span>
+                                                {% elif grupo.grouper == 'No Clasificado' %}
+                                                     {# Opcional: Mostrar los 'No Clasificado' #}
+                                                     {% comment %} <span class="badge bg-secondary me-1">NC: {{ grupo.list|length }}</span> {% endcomment %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endwith %}
+                                    {# --- FIN DE LA LÓGICA CORREGIDA --- #}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">No hay búsquedas recientes.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+             </div>
         </div>
     </div>
 </div>
@@ -70,7 +140,7 @@
 
 {{ labels_tendencia|json_script:"labels-tendencia" }}
 {{ data_consultas|json_script:"data-consultas" }}
-{{ data_alertas|json_script:"data-alertas" }}
+{{ data_rojos|json_script:"data-rojos" }} {# Variable actualizada #}
 {{ labels_fuentes|json_script:"labels-fuentes" }}
 {{ data_fuentes|json_script:"data-fuentes" }}
 
@@ -78,58 +148,106 @@
     // Leemos los datos de forma segura
     const labelsTendencia = JSON.parse(document.getElementById('labels-tendencia').textContent);
     const dataConsultas = JSON.parse(document.getElementById('data-consultas').textContent);
-    const dataAlertas = JSON.parse(document.getElementById('data-alertas').textContent);
+    const dataRojos = JSON.parse(document.getElementById('data-rojos').textContent); // Variable actualizada
     const labelsFuentes = JSON.parse(document.getElementById('labels-fuentes').textContent);
     const dataFuentes = JSON.parse(document.getElementById('data-fuentes').textContent);
 
-    // Configuración Gráfico de Tendencia
+    // Configuración Gráfico de Tendencia (Actualizado)
     const ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
     new Chart(ctxTendencia, {
         type: 'line',
         data: {
             labels: labelsTendencia,
             datasets: [{
-                label: 'Consultas',
+                label: 'Consultas Totales', // Etiqueta actualizada
                 data: dataConsultas,
                 borderColor: 'rgba(54, 162, 235, 1)',
                 backgroundColor: 'rgba(54, 162, 235, 0.2)',
                 fill: true,
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 2, // Puntos más pequeños
+                pointHoverRadius: 4
             }, {
-                label: 'Alertas',
-                data: dataAlertas,
+                label: 'Hallazgos Rojos', // Etiqueta actualizada
+                data: dataRojos, // Variable actualizada
                 borderColor: 'rgba(255, 99, 132, 1)',
                 backgroundColor: 'rgba(255, 99, 132, 0.2)',
                 fill: true,
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 4
             }]
+        },
+        options: { // Opciones añadidas para Tooltips, Leyenda y Ejes
+            responsive: true,
+            maintainAspectRatio: false, // Permitir que el gráfico llene la altura del contenedor
+            plugins: {
+                tooltip: { mode: 'index', intersect: false },
+                legend: { position: 'bottom', labels: { boxWidth: 12 } }
+            },
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    ticks: { precision: 0 } // Asegurar números enteros en el eje Y
+                },
+                x: { ticks: { autoSkip: true, maxTicksLimit: 15 } } // Limitar etiquetas eje X si son muchas
+            },
+            interaction: { // Mejorar interacción con el ratón
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
         }
     });
 
-    // Configuración Gráfico de Fuentes
+    // Configuración Gráfico de Fuentes (Doughnut)
     const ctxFuentes = document.getElementById('fuentesChart').getContext('2d');
     new Chart(ctxFuentes, {
         type: 'doughnut',
         data: {
             labels: labelsFuentes,
             datasets: [{
-                label: 'Nº de Alertas',
+                label: 'Nº de Hallazgos Rojos', // Etiqueta actualizada
                 data: dataFuentes,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.7)',
-                    'rgba(54, 162, 235, 0.7)',
-                    'rgba(255, 206, 86, 0.7)',
-                    'rgba(75, 192, 192, 0.7)',
-                    'rgba(153, 102, 255, 0.7)',
+                backgroundColor: [ // Paleta de colores ajustada
+                    'rgba(255, 99, 132, 0.8)',  // Rojo
+                    'rgba(255, 159, 64, 0.8)',  // Naranja
+                    'rgba(255, 205, 86, 0.8)',  // Amarillo
+                    'rgba(75, 192, 192, 0.8)',  // Verde azulado
+                    'rgba(54, 162, 235, 0.8)',  // Azul
                 ],
+                borderColor: '#fff', // Borde blanco entre segmentos
+                borderWidth: 2
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'top',
+                    position: 'bottom', // Leyenda abajo para 'doughnut'
+                     labels: { padding: 10, boxWidth: 12 }
+                },
+                // Opcional: Mostrar porcentaje en tooltips
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) { label += ': '; }
+                            if (context.parsed !== null) {
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) + '%' : '0%';
+                                label += `${context.parsed} (${percentage})`;
+                            }
+                            return label;
+                        }
+                    }
                 }
+                 // Título opcional eliminado para dar más espacio al gráfico de dona
+                /*title: { 
+                    display: true,
+                    text: 'Top 5 Fuentes Rojas'
+                }*/
             }
         }
     });

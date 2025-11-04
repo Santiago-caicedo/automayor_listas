@@ -1,8 +1,7 @@
 # empresas/models.py
 from django.db import models
-from django_tenants.models import TenantMixin, DomainMixin
 
-class Empresa(TenantMixin):
+class Empresa(models.Model):
     nombre = models.CharField(max_length=100)
     creado_en = models.DateField(auto_now_add=True)
 
@@ -12,7 +11,3 @@ class Empresa(TenantMixin):
 
     def __str__(self):
         return self.nombre
-
-class Domain(DomainMixin):
-    # No necesita campos adicionales
-    pass

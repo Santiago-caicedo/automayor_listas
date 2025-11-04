@@ -33,33 +33,23 @@ ALLOWED_HOSTS = []
 # Application definition
 
 # APPS COMPARTIDAS (viven en el esquema 'public')
-SHARED_APPS = (
-    'django_tenants',
-    'empresas',  
-    'usuarios',
-
-    'cargas_masivas',
-
-    # Apps de Django que deben ser compartidas
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-)
 
-# APPS POR INQUILINO (sus tablas se crearán en el esquema de cada empresa)
-TENANT_APPS = (
-    'consultas', # Nuestra app de consultas es específica de cada empresa
-)
-
-# Ahora, modifica tu INSTALLED_APPS para que use estas listas
-INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+    # Nuestras apps (todas juntas)
+    'empresas',
+    'usuarios',
+    'consultas',
+    'cargas_masivas',
+]
 
 
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -94,7 +84,7 @@ WSGI_APPLICATION = 'gestor_listas.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
@@ -103,9 +93,7 @@ DATABASES = {
     }
 }
 
-DATABASE_ROUTERS = (
-    'django_tenants.routers.TenantSyncRouter',
-)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -149,8 +137,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-TENANT_MODEL = "empresas.Empresa"
-TENANT_DOMAIN_MODEL = "empresas.Domain"
 
 
 AUTH_USER_MODEL = 'usuarios.Usuario'
@@ -174,10 +160,7 @@ API_BASE_URL = config('API_BASE_URL')
 
 
 AUTHENTICATION_BACKENDS = [
-    # Tries our custom tenant check first
-    'usuarios.backends.TenantAuthenticationBackend', 
-    # Falls back to the default check (needed for admin login, superusers)
-    'django.contrib.auth.backends.ModelBackend', 
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 

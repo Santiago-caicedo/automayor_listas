@@ -189,3 +189,6 @@ ADMIN_EMAIL = 'tu-email-de-admin@gmail.com' # Email de tu equipo admin
 # --- CONFIGURACIÓN DE ARCHIVOS (MEDIA) ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

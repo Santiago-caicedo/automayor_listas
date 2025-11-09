@@ -6,10 +6,12 @@ import os
 
 # Función para definir rutas de subida dinámicas
 def ruta_archivo_subido(instance, filename):
-    return f'cargas_masivas/{instance.empresa.schema_name}/subidas/{filename}'
+    # CORREGIDO: Usamos .id en lugar de .schema_name
+    return f'cargas_masivas/empresa_{instance.empresa.id}/subidas/{filename}'
 
 def ruta_archivo_resultado(instance, filename):
-    return f'cargas_masivas/{instance.empresa.schema_name}/resultados/{filename}'
+    # CORREGIDO: Usamos .id en lugar de .schema_name
+    return f'cargas_masivas/empresa_{instance.empresa.id}/resultados/{filename}'
 
 class LoteConsultaMasiva(models.Model):
     ESTADO_CHOICES = [

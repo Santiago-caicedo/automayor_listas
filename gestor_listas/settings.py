@@ -166,10 +166,20 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-# --- CONFIGURACIÓN DE CORREO (para pruebas en consola) ---
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@vadomsystems.com' # Email por defecto
-ADMIN_EMAIL = 'tu-email-de-admin@gmail.com' # Email de tu equipo admin
+# --- CONFIGURACIÓN DE CORREO (Producción) ---
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+# Estas dos líneas son las más importantes (basado en el puerto 465)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+
+# Estos no cambian
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER # El correo saliente será 'info@vadomdata.com'
+ADMIN_EMAIL = 'caicedosantiago38@gmail.com' # Email de tu equipo admin
 
 # --- CONFIGURACIÓN DE ARCHIVOS (MEDIA) ---
 MEDIA_URL = '/media/'

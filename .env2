@@ -1,0 +1,18 @@
+# Archivo: .env
+
+# Clave secreta de Django (puedes dejar esta por ahora)
+SECRET_KEY='django-insecure-_4zvl-*=u1=e^rl6_@m_4y^tik#e_!$gx$zp(jz)z8x1#h-r^o'
+
+# Modo de depuración
+DEBUG=True
+
+# Credenciales de la Base de Datos
+DB_NAME='consultas_db'
+DB_USER='usr.consultas_db'
+DB_PASSWORD='Bf0Tfx9U5hY0'
+DB_HOST='vadom-consulting-db.cotou8cmuagz.us-east-1.rds.amazonaws.com'
+DB_PORT='5432'
+
+API_TOKEN='8495-4545-4487'
+API_BASE_URL='https://www.consultalistaspeps.com/ClientArea/BLS_WS_BLS/ConsultaListasPeps.svc/rest/'
+

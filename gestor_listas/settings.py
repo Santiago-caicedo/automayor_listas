@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'usuarios',
     'consultas',
     'cargas_masivas.apps.CargasMasivasConfig',
+
+    'core_admin',
 ]
 
 

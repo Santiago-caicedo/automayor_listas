@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Listo</title>
+    <title>Tu Reporte está Listo</title>
 </head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333;">
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background-color: #f4f4f4;">
 
-    <table width="100%" max-width="600px" style="margin: auto; border-collapse: collapse; border: 1px solid #ddd;">
+    <table width="100%" max-width="600px" style="margin: auto; border-collapse: collapse; border: 1px solid #ddd; background-color: #ffffff;">
         <tr>
-            <td style="background-color: #f9f9f9; padding: 20px; text-align: center;">
-                <img src="[URL_PUBLICA_DE_TU_LOGO]" alt="Logo Empresa" style="max-width: 180px;">
+            <td style="background-color: #1b7783; padding: 20px; text-align: center;">
+                <img src="https://vadomdata.com/wp-content/uploads/2025/10/lOGO-BLANCO-VADOM-e1760567317876.png" alt="Logo VADOM" style="max-width: 180px;">
             </td>
         </tr>
 
         <tr>
             <td style="padding: 30px;">
-                <h1 style="color: #0275d8; text-align: center; margin-top: 0;">¡Tu Reporte está Listo!</h1>
+                <h1 style="color: #1b7783; text-align: center; margin-top: 0;">¡Tu Reporte está Listo!</h1>
                 
                 <p style="font-size: 16px; line-height: 1.6;">
                     Hola <strong>{{ instance.usuario_solicitante.username }}</strong>,
@@ -24,23 +24,25 @@
                 <p style="font-size: 16px; line-height: 1.6;">
                     Nos complace informarte que tu solicitud de consulta masiva (ID: {{ instance.id }}) ha sido procesada exitosamente.
                 </p>
-
                 <p style="font-size: 16px; line-height: 1.6;">
                     Ya puedes iniciar sesión en la plataforma para descargar el reporte en PDF.
                 </p>
 
-                <p style="text-align: center; margin-top: 30px;">
+                <p style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
                     <a href="{{ domain }}/cargas-masivas/" 
-                       style="background-color: #0275d8; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">
-                        Ir a Cargas Masivas
+                       style="background-color: #1b7783; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                        Descargar Reporte
                     </a>
                 </p>
             </td>
         </tr>
 
         <tr>
-            <td style="background-color: #333; color: #aaa; padding: 20px; text-align: center; font-size: 12px;">
-                Gracias por usar nuestros servicios.
+            <td style="background-color: #333; color: #aaa; padding: 25px; text-align: center; font-size: 12px; line-height: 1.5;">
+                <p style="margin: 0 0 10px 0;">
+                    Este es un correo generado automáticamente por la plataforma laft de VADOM DATA CONSULTING S.A.S, por favor no responda este mensaje.
+                </p>
+                <p style="margin: 0;">&copy; {% now "Y" %} VADOM DATA CONSULTING S.A.S. Todos los derechos reservados.</p>
             </td>
         </tr>
     </table>

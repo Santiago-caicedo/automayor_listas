@@ -15,6 +15,8 @@ urlpatterns = [
     path('', include('consultas.urls')),
 
     path('cargas-masivas/', include('cargas_masivas.urls')),
+
+    path('core-admin/', include('core_admin.urls')),
 ]
 
 # Añadir esto al final, solo para desarrollo

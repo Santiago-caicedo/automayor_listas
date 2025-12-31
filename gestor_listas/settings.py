@@ -29,9 +29,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['compas.vadomconsultas.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['comertex.vadomconsultas.com', 'localhost', '127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = ['https://compas.vadomconsultas.com']
+CSRF_TRUSTED_ORIGINS = ['https://comertex.vadomconsultas.com']
 
 
 
@@ -184,13 +184,70 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 
 # Estos no cambian
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER # El correo saliente será 'info@vadomdata.com'
-ADMIN_EMAIL = config('ADMIN_EMAIL', default='caicedosantiago38@gmail.com')
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='vadomdata@gmail.com')
 
 MI_DOMINIO = config('MI_DOMINIO', default='http://127.0.0.1:8000')
 
-# --- CONFIGURACIÓN DE ARCHIVOS (MEDIA) ---
-MEDIA_URL = '/media/'
+
+# --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y MEDIA (PRODUCCIÓN S3) ---
+# (Versión final usando el formato 'STORAGES' de Django 4.2+)
+
+# 1. Definiciones Locales (Django las necesita para 'collectstatic')
+# -----------------------------------------------------------------
+# Ruta en el servidor donde collectstatic BUSCARÁ los archivos
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Ruta en el servidor para subidas (no se usará, pero debe estar)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# 2. Configuración de AWS S3 (El Destino)
+# -----------------------------------------------------------------
+AWS_STORAGE_BUCKET_NAME = 'vadomdata'
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None # ¡Importante! La cambiamos para evitar el error "AccessControlListNotSupported"
+
+# --- ¡LA CLAVE DINÁMICA! ---
+# Lee el prefijo de este cliente desde el .env (ej: 'compas' o 'comertex')
+S3_PREFIX = config('S3_CLIENT_PREFIX', default='default_prefix')
+
+
+# 3. Importación de S3
+# -----------------------------------------------------------------
+from storages.backends.s3boto3 import S3Boto3Storage
+
+# 4. Clases de Almacenamiento Personalizadas (Usan el prefijo)
+# -----------------------------------------------------------------
+# Clase para ESTÁTICOS (que deben ir en la carpeta ej: 'compas/static/')
+class StaticStorage(S3Boto3Storage):
+    location = f'{S3_PREFIX}/static'
+
+# Clase para MEDIA (que deben ir en la carpeta ej: 'compas/media/')
+class MediaStorage(S3Boto3Storage):
+    location = f'{S3_PREFIX}/media'
+    file_overwrite = False
+
+# 5. Definición de URLs (Usan el prefijo)
+# -----------------------------------------------------------------
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/static/'
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/media/'
+
+# 6. Asignación final usando el formato 'STORAGES'
+# -----------------------------------------------------------------
+STORAGES = {
+    "default": {
+        # Apunta a nuestra clase personalizada de MEDIA
+        "BACKEND": "gestor_listas.settings.MediaStorage",
+    },
+    "staticfiles": {
+        # Apunta a nuestra clase personalizada de ESTÁTICOS
+        "BACKEND": "gestor_listas.settings.StaticStorage",
+    },
+}
+
+# 7. Configuración de DEBUG (Leída desde .env)
+# -----------------------------------------------------------------
+DEBUG = config('DEBUG', default=False, cast=bool)

@@ -1,18 +1,19 @@
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView, UpdateView, CreateView, DeleteView
 from .mixins import SuperuserRequiredMixin
 from django.utils import timezone
 from datetime import datetime
 from django.db.models.functions import TruncDay
+from django.db.models import Q
 from consultas.models import Busqueda
 from cargas_masivas.models import LoteConsultaMasiva
 from empresas.models import Empresa
 from usuarios.models import Usuario
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
-import json 
-from django.views.generic import TemplateView, ListView, UpdateView 
-from .forms import ProcesarLoteForm 
+import json
+from .forms import ProcesarLoteForm, UsuarioCreateForm, UsuarioEditForm
 from django.urls import reverse_lazy
+from django.contrib import messages
 
 class DashboardView(SuperuserRequiredMixin, TemplateView):
     template_name = 'core_admin/dashboard.html'
@@ -147,3 +148,119 @@ class ReporteMensualView(SuperuserRequiredMixin, TemplateView):
         context['total_consultas_mes'] = consultas_del_mes.count()
 
         return context
+
+
+# --- VISTAS PARA GESTIONAR USUARIOS ---
+
+class UsuarioListView(SuperuserRequiredMixin, ListView):
+    """
+    Lista todos los usuarios del sistema (excepto superusuarios).
+    """
+    model = Usuario
+    template_name = 'core_admin/usuario_list.html'
+    context_object_name = 'usuarios'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = Usuario.objects.filter(is_superuser=False).select_related('empresa').order_by('-date_joined')
+
+        # Filtro por empresa
+        empresa_id = self.request.GET.get('empresa')
+        if empresa_id:
+            queryset = queryset.filter(empresa_id=empresa_id)
+
+        # Filtro por estado
+        estado = self.request.GET.get('estado')
+        if estado == 'activo':
+            queryset = queryset.filter(is_active=True)
+        elif estado == 'inactivo':
+            queryset = queryset.filter(is_active=False)
+
+        # Búsqueda por nombre/email
+        busqueda = self.request.GET.get('q')
+        if busqueda:
+            queryset = queryset.filter(
+                Q(username__icontains=busqueda) |
+                Q(email__icontains=busqueda) |
+                Q(first_name__icontains=busqueda) |
+                Q(last_name__icontains=busqueda)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Gestión de Usuarios'
+        context['empresas'] = Empresa.objects.all()
+        context['total_usuarios'] = Usuario.objects.filter(is_superuser=False).count()
+        context['usuarios_activos'] = Usuario.objects.filter(is_superuser=False, is_active=True).count()
+        return context
+
+
+class UsuarioCreateView(SuperuserRequiredMixin, CreateView):
+    """
+    Vista para crear un nuevo usuario.
+    """
+    model = Usuario
+    form_class = UsuarioCreateForm
+    template_name = 'core_admin/usuario_form.html'
+    success_url = reverse_lazy('core_admin:usuario_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Nuevo Usuario'
+        context['boton_texto'] = 'Crear Usuario'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Usuario "{form.instance.username}" creado exitosamente.')
+        return super().form_valid(form)
+
+
+class UsuarioUpdateView(SuperuserRequiredMixin, UpdateView):
+    """
+    Vista para editar un usuario existente.
+    """
+    model = Usuario
+    form_class = UsuarioEditForm
+    template_name = 'core_admin/usuario_form.html'
+    success_url = reverse_lazy('core_admin:usuario_list')
+    context_object_name = 'usuario'
+
+    def get_queryset(self):
+        # No permitir editar superusuarios
+        return Usuario.objects.filter(is_superuser=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Usuario: {self.object.username}'
+        context['boton_texto'] = 'Guardar Cambios'
+        context['editando'] = True
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Usuario "{form.instance.username}" actualizado exitosamente.')
+        return super().form_valid(form)
+
+
+class UsuarioDeleteView(SuperuserRequiredMixin, DeleteView):
+    """
+    Vista para eliminar (desactivar) un usuario.
+    """
+    model = Usuario
+    template_name = 'core_admin/usuario_confirm_delete.html'
+    success_url = reverse_lazy('core_admin:usuario_list')
+    context_object_name = 'usuario'
+
+    def get_queryset(self):
+        # No permitir eliminar superusuarios
+        return Usuario.objects.filter(is_superuser=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Usuario: {self.object.username}'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Usuario "{self.object.username}" eliminado exitosamente.')
+        return super().form_valid(form)

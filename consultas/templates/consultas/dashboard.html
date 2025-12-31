@@ -4,9 +4,16 @@
 {% block title %}Dashboard | Plataforma LAFT{% endblock %}
 
 {% block content %}
-<header class="page-header">
-    <h1 class="display-6">Dashboard de Inteligencia de Riesgo</h1>
-    <p class="text-muted">Análisis de las consultas y hallazgos de {{ user.empresa.nombre }} en los últimos 30 días.</p>
+<header class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1 class="display-6">Dashboard de Inteligencia de Riesgo</h1>
+        <p class="text-muted mb-0">Análisis de las consultas y hallazgos de {{ user.empresa.nombre }} en los últimos 30 días.</p>
+    </div>
+    {% if user.is_superuser %}
+    <a href="{% url 'core_admin:dashboard' %}" class="btn btn-dark">
+        <i class="bi bi-gear-fill"></i> Panel de Administración
+    </a>
+    {% endif %}
 </header>
 
 <div class="row g-4 mb-4">

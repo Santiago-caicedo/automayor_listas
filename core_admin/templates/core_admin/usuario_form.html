@@ -86,7 +86,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label d-block">Estado</label>
+                            <label class="form-label d-block">Estado y Permisos</label>
                             <div class="form-check form-switch mt-2">
                                 {{ form.is_active }}
                                 <label class="form-check-label" for="id_is_active">
@@ -96,6 +96,17 @@
                             {% if form.is_active.errors %}
                             <div class="text-danger small">{{ form.is_active.errors.0 }}</div>
                             {% endif %}
+
+                            <div class="form-check form-switch mt-3">
+                                {{ form.es_superior }}
+                                <label class="form-check-label" for="id_es_superior">
+                                    <i class="bi bi-star-fill text-warning"></i> Superior de empresa
+                                </label>
+                            </div>
+                            {% if form.es_superior.errors %}
+                            <div class="text-danger small">{{ form.es_superior.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Permite ver métricas y consultas de todos los usuarios de su empresa.</div>
                         </div>
                     </div>
 

@@ -78,10 +78,15 @@ comertex_listas/
 | `/historial/` | `historial_busquedas` | Lista búsquedas del usuario |
 | `/historial/<id>/` | `detalle_busqueda` | Detalle con resultados |
 | `/historial/<id>/pdf/` | `generar_pdf_busqueda` | Genera PDF (WeasyPrint) |
+| `/gestion/` | `gestion_dashboard` | Dashboard para Superior de empresa |
+| `/gestion/consultas/` | `gestion_consultas` | Lista consultas de la empresa |
+| `/gestion/consultas/<id>/` | `gestion_detalle_busqueda` | Detalle (vista Superior) |
 
 **Modelos:**
 - `Busqueda`: Registro de cada consulta (usuario, término, fecha, flags)
 - `Resultado`: Cada coincidencia del API (mapea BlsWsConsultaPeps)
+
+**Decorador:** `@superior_required` - Verifica que el usuario sea `es_superior` o `is_superuser`
 
 ### 2. `usuarios` - Autenticación
 **URLs base:** `/cuentas/`
@@ -91,7 +96,9 @@ comertex_listas/
 | `/login/` | LoginView (Django auth) |
 | `/logout/` | LogoutView |
 
-**Modelo:** `Usuario` extiende `AbstractUser` con FK a `Empresa`
+**Modelo:** `Usuario` extiende `AbstractUser`
+- `empresa`: FK a Empresa
+- `es_superior`: BooleanField - Permite ver métricas y consultas de toda la empresa
 
 ### 3. `empresas` - Multi-Empresa
 **Modelo:** `Empresa` (nombre, creado_en)

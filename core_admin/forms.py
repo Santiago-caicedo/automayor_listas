@@ -21,13 +21,14 @@ class UsuarioCreateForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['username', 'email', 'first_name', 'last_name', 'empresa', 'is_active']
+        fields = ['username', 'email', 'first_name', 'last_name', 'empresa', 'es_superior', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'empresa': forms.Select(attrs={'class': 'form-select'}),
+            'es_superior': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
@@ -36,6 +37,7 @@ class UsuarioCreateForm(forms.ModelForm):
             'first_name': 'Nombre',
             'last_name': 'Apellido',
             'empresa': 'Empresa',
+            'es_superior': 'Superior de empresa',
             'is_active': 'Usuario activo',
         }
 
@@ -75,13 +77,14 @@ class UsuarioEditForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['username', 'email', 'first_name', 'last_name', 'empresa', 'is_active']
+        fields = ['username', 'email', 'first_name', 'last_name', 'empresa', 'es_superior', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'empresa': forms.Select(attrs={'class': 'form-select'}),
+            'es_superior': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
@@ -90,6 +93,7 @@ class UsuarioEditForm(forms.ModelForm):
             'first_name': 'Nombre',
             'last_name': 'Apellido',
             'empresa': 'Empresa',
+            'es_superior': 'Superior de empresa',
             'is_active': 'Usuario activo',
         }
 

@@ -117,6 +117,11 @@
                     <tr class="{% if not usuario.is_active %}table-secondary{% endif %}">
                         <td>
                             <strong>{{ usuario.username }}</strong>
+                            {% if usuario.es_superior %}
+                            <span class="badge bg-warning text-dark ms-1" title="Superior de empresa">
+                                <i class="bi bi-star-fill"></i>
+                            </span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if usuario.first_name or usuario.last_name %}

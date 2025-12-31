@@ -277,5 +277,177 @@ def generar_pdf_busqueda(request, busqueda_id):
     # 5. Añadimos una cabecera para que el navegador lo trate como una descarga
     #    con un nombre de archivo dinámico.
     response['Content-Disposition'] = f'attachment; filename="Reporte-LAFT-{busqueda.termino_buscado}.pdf"'
-    
+
     return response
+
+
+# =============================================================================
+# VISTAS PARA SUPERIOR DE EMPRESA
+# =============================================================================
+
+from django.core.exceptions import PermissionDenied
+from usuarios.models import Usuario
+from django.db.models import Q
+from django.core.paginator import Paginator
+
+
+def superior_required(view_func):
+    """
+    Decorador que verifica que el usuario sea superior de empresa o superusuario.
+    """
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.shortcuts import redirect
+            return redirect('login')
+        if not (request.user.es_superior or request.user.is_superuser):
+            raise PermissionDenied("No tienes permisos para acceder a esta sección.")
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@login_required
+@superior_required
+def gestion_dashboard(request):
+    """
+    Dashboard de gestión para el Superior de empresa.
+    Muestra métricas globales de su empresa.
+    """
+    empresa = request.user.empresa
+    hoy = timezone.now()
+    hace_30_dias = hoy - timedelta(days=30)
+
+    # Búsquedas de la empresa en los últimos 30 días
+    busquedas_empresa = Busqueda.objects.filter(
+        usuario__empresa=empresa,
+        fecha_busqueda__gte=hace_30_dias
+    )
+
+    # Resultados de esas búsquedas
+    resultados_empresa = Resultado.objects.filter(busqueda__in=busquedas_empresa)
+
+    # KPIs
+    total_consultas_mes = busquedas_empresa.count()
+    total_usuarios_empresa = Usuario.objects.filter(empresa=empresa, is_active=True).count()
+
+    # Clasificación de hallazgos
+    rojo_mes = resultados_empresa.filter(clasificacion='Rojo').count()
+    amarillo_mes = resultados_empresa.filter(clasificacion='Amarillo').count()
+    peps_mes = resultados_empresa.filter(clasificacion="PEP's").count()
+
+    # Consultas de hoy
+    busquedas_hoy = busquedas_empresa.filter(fecha_busqueda__date=hoy.date())
+    consultas_hoy = busquedas_hoy.count()
+
+    # Tendencia de consultas por día
+    tendencia_consultas = (busquedas_empresa
+                           .annotate(dia=TruncDay('fecha_busqueda'))
+                           .values('dia')
+                           .annotate(conteo=Count('id'))
+                           .order_by('dia'))
+
+    labels_tendencia = [item['dia'].strftime('%d/%m') for item in tendencia_consultas]
+    data_consultas = [item['conteo'] for item in tendencia_consultas]
+
+    # Top usuarios por consultas
+    top_usuarios = (busquedas_empresa
+                    .values('usuario__username', 'usuario__first_name', 'usuario__last_name')
+                    .annotate(total=Count('id'))
+                    .order_by('-total')[:5])
+
+    # Últimas búsquedas
+    ultimas_busquedas = busquedas_empresa.select_related('usuario').order_by('-fecha_busqueda')[:10]
+
+    context = {
+        'empresa': empresa,
+        'total_consultas_mes': total_consultas_mes,
+        'total_usuarios_empresa': total_usuarios_empresa,
+        'rojo_mes': rojo_mes,
+        'amarillo_mes': amarillo_mes,
+        'peps_mes': peps_mes,
+        'consultas_hoy': consultas_hoy,
+        'labels_tendencia': labels_tendencia,
+        'data_consultas': data_consultas,
+        'top_usuarios': top_usuarios,
+        'ultimas_busquedas': ultimas_busquedas,
+    }
+
+    return render(request, 'consultas/gestion/dashboard.html', context)
+
+
+@login_required
+@superior_required
+def gestion_consultas(request):
+    """
+    Lista todas las consultas de la empresa con filtros.
+    """
+    empresa = request.user.empresa
+
+    # Base queryset
+    busquedas = Busqueda.objects.filter(
+        usuario__empresa=empresa
+    ).select_related('usuario').order_by('-fecha_busqueda')
+
+    # Filtro por usuario
+    usuario_id = request.GET.get('usuario')
+    if usuario_id:
+        busquedas = busquedas.filter(usuario_id=usuario_id)
+
+    # Filtro por fecha desde
+    fecha_desde = request.GET.get('fecha_desde')
+    if fecha_desde:
+        busquedas = busquedas.filter(fecha_busqueda__date__gte=fecha_desde)
+
+    # Filtro por fecha hasta
+    fecha_hasta = request.GET.get('fecha_hasta')
+    if fecha_hasta:
+        busquedas = busquedas.filter(fecha_busqueda__date__lte=fecha_hasta)
+
+    # Filtro por término de búsqueda
+    termino = request.GET.get('q')
+    if termino:
+        busquedas = busquedas.filter(termino_buscado__icontains=termino)
+
+    # Filtro por si encontró resultados
+    con_resultados = request.GET.get('con_resultados')
+    if con_resultados == 'si':
+        busquedas = busquedas.filter(encontro_resultados=True)
+    elif con_resultados == 'no':
+        busquedas = busquedas.filter(encontro_resultados=False)
+
+    # Paginación
+    paginator = Paginator(busquedas, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Lista de usuarios de la empresa para el filtro
+    usuarios_empresa = Usuario.objects.filter(empresa=empresa, is_active=True).order_by('username')
+
+    # Contadores
+    total_consultas = busquedas.count()
+
+    context = {
+        'page_obj': page_obj,
+        'usuarios_empresa': usuarios_empresa,
+        'total_consultas': total_consultas,
+        'empresa': empresa,
+    }
+
+    return render(request, 'consultas/gestion/consultas_list.html', context)
+
+
+@login_required
+@superior_required
+def gestion_detalle_busqueda(request, busqueda_id):
+    """
+    Muestra el detalle de una búsqueda específica (para el Superior).
+    Puede ver cualquier búsqueda de su empresa.
+    """
+    empresa = request.user.empresa
+
+    # El superior puede ver cualquier búsqueda de su empresa
+    busqueda = get_object_or_404(Busqueda, pk=busqueda_id, usuario__empresa=empresa)
+
+    context = {
+        'busqueda': busqueda
+    }
+    return render(request, 'consultas/detalle_busqueda.html', context)

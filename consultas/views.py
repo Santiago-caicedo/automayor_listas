@@ -231,8 +231,8 @@ def dashboard(request):
     labels_fuentes = [item['tipo_lista'] if item['tipo_lista'] else 'N/A' for item in fuentes_rojas]
     data_fuentes = [item['conteo'] for item in fuentes_rojas]
 
-    # --- BÚSQUEDAS RECIENTES ---
-    ultimas_busquedas = busquedas_periodo.order_by('-fecha_busqueda')[:5]
+    # --- BÚSQUEDAS RECIENTES DEL USUARIO ---
+    ultimas_busquedas = Busqueda.objects.filter(usuario=request.user).order_by('-fecha_busqueda')[:5]
 
     context = {
         'total_consultas_mes': total_consultas_mes,

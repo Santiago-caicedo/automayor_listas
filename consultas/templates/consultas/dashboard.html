@@ -79,7 +79,7 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow-sm">
-             <div class="card-header fw-bold"><i class="bi bi-clock-history"></i> Últimas Búsquedas Realizadas</div>
+             <div class="card-header fw-bold"><i class="bi bi-clock-history"></i> Mis Últimas Búsquedas</div>
              <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle mb-0"> {# align-middle para centrar verticalmente #}
@@ -87,7 +87,6 @@
                             <tr>
                                 <th>Término Buscado</th>
                                 <th>Fecha</th>
-                                <th>Usuario</th>
                                 <th class="text-center">Clasif. Hallazgos</th>
                             </tr>
                         </thead>
@@ -100,7 +99,6 @@
                                     </a>
                                 </td>
                                 <td>{{ b.fecha_busqueda|date:"d/m/y H:i" }}</td>
-                                <td>{{ b.usuario.username }}</td>
                                 <td class="text-center">
                                     {# --- LÓGICA CORREGIDA PARA CONTAR CLASIFICACIONES --- #}
                                     {% with resultados=b.resultados.all %}

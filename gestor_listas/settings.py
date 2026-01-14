@@ -29,9 +29,15 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['comertex.vadomconsultas.com', 'localhost', '127.0.0.1']
+# Hosts permitidos - leer desde .env (separados por coma)
+# Ejemplo en .env: ALLOWED_HOSTS=midominio.com,localhost,127.0.0.1
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-CSRF_TRUSTED_ORIGINS = ['https://comertex.vadomconsultas.com']
+# Orígenes CSRF confiables - leer desde .env (separados por coma)
+# Ejemplo en .env: CSRF_TRUSTED_ORIGINS=https://midominio.com
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
+# Limpiar lista vacía si no hay orígenes configurados
+CSRF_TRUSTED_ORIGINS = [origin for origin in CSRF_TRUSTED_ORIGINS if origin]
 
 
 

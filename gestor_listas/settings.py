@@ -195,65 +195,49 @@ ADMIN_EMAIL = config('ADMIN_EMAIL', default='vadomdata@gmail.com')
 MI_DOMINIO = config('MI_DOMINIO', default='http://127.0.0.1:8000')
 
 
-# --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y MEDIA (PRODUCCIÓN S3) ---
-# (Versión final usando el formato 'STORAGES' de Django 4.2+)
+# --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y MEDIA ---
+# Configuración híbrida: LOCAL en desarrollo, S3 en producción
 
-# 1. Definiciones Locales (Django las necesita para 'collectstatic')
-# -----------------------------------------------------------------
-# Ruta en el servidor donde collectstatic BUSCARÁ los archivos
+# Rutas locales (Django las necesita siempre)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# Ruta en el servidor para subidas (no se usará, pero debe estar)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+if DEBUG:
+    # =============================================
+    # MODO DESARROLLO (LOCAL)
+    # =============================================
+    STATIC_URL = '/static/'
+    MEDIA_URL = '/media/'
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+else:
+    # =============================================
+    # MODO PRODUCCIÓN (AWS S3)
+    # Credenciales via IAM Role del EC2 (no se necesitan keys)
+    # =============================================
+    from storages.backends.s3boto3 import S3Boto3Storage
 
-# 2. Configuración de AWS S3 (El Destino)
-# -----------------------------------------------------------------
-AWS_STORAGE_BUCKET_NAME = 'vadomdata'
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
-}
-AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None # ¡Importante! La cambiamos para evitar el error "AccessControlListNotSupported"
+    AWS_STORAGE_BUCKET_NAME = 'vadomdata'
+    AWS_S3_REGION_NAME = 'us-east-1'
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_DEFAULT_ACL = None
 
-# --- ¡LA CLAVE DINÁMICA! ---
-# Lee el prefijo de este cliente desde el .env (ej: 'compas' o 'comertex')
-S3_PREFIX = config('S3_CLIENT_PREFIX', default='default_prefix')
+    S3_PREFIX = config('S3_CLIENT_PREFIX', default='default_prefix')
 
+    class StaticStorage(S3Boto3Storage):
+        location = f'{S3_PREFIX}/static'
+        default_acl = None
 
-# 3. Importación de S3
-# -----------------------------------------------------------------
-from storages.backends.s3boto3 import S3Boto3Storage
+    class MediaStorage(S3Boto3Storage):
+        location = f'{S3_PREFIX}/media'
+        default_acl = None
 
-# 4. Clases de Almacenamiento Personalizadas (Usan el prefijo)
-# -----------------------------------------------------------------
-# Clase para ESTÁTICOS (que deben ir en la carpeta ej: 'compas/static/')
-class StaticStorage(S3Boto3Storage):
-    location = f'{S3_PREFIX}/static'
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/static/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/media/'
 
-# Clase para MEDIA (que deben ir en la carpeta ej: 'compas/media/')
-class MediaStorage(S3Boto3Storage):
-    location = f'{S3_PREFIX}/media'
-    file_overwrite = False
-
-# 5. Definición de URLs (Usan el prefijo)
-# -----------------------------------------------------------------
-STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/static/'
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{S3_PREFIX}/media/'
-
-# 6. Asignación final usando el formato 'STORAGES'
-# -----------------------------------------------------------------
-STORAGES = {
-    "default": {
-        # Apunta a nuestra clase personalizada de MEDIA
-        "BACKEND": "gestor_listas.settings.MediaStorage",
-    },
-    "staticfiles": {
-        # Apunta a nuestra clase personalizada de ESTÁTICOS
-        "BACKEND": "gestor_listas.settings.StaticStorage",
-    },
-}
-
-# 7. Configuración de DEBUG (Leída desde .env)
-# -----------------------------------------------------------------
-DEBUG = config('DEBUG', default=False, cast=bool)
+    STORAGES = {
+        "default": {"BACKEND": "gestor_listas.settings.MediaStorage"},
+        "staticfiles": {"BACKEND": "gestor_listas.settings.StaticStorage"},
+    }

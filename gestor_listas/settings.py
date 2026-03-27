@@ -201,6 +201,7 @@ MI_DOMINIO = config('MI_DOMINIO', default='http://127.0.0.1:8000')
 # Rutas locales (Django las necesita siempre)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 if DEBUG:
     # =============================================
